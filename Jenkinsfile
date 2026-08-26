@@ -5,7 +5,18 @@ pipeline {
         maven 'Maven'
     }
 
+    environment {
+        APP_NAME = 'task-manager-backend'
+        APP_VERSION = '1.0.0'
+    }
+
+    options {
+        timeout(time: 10, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+    }
+
     stages {
+
         stage('Checkout') {
             steps {
                 echo 'Checking out source code...'
@@ -15,7 +26,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo 'Building the application...'
+                echo "Building ${env.APP_NAME} version ${env.APP_VERSION}..."
                 sh 'mvn clean package -DskipTests'
                 echo 'Build complete!'
             }
@@ -33,13 +44,14 @@ pipeline {
             steps {
                 echo 'Archiving build artifacts...'
                 archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                echo "Artifact: target/${env.APP_NAME}-${env.APP_VERSION}.jar"
             }
         }
     }
 
     post {
         success {
-            echo 'Pipeline completed successfully!'
+            echo 'SUCCESS: All stages passed!'
         }
 
         failure {
@@ -48,6 +60,8 @@ pipeline {
 
         always {
             echo "Build #${env.BUILD_NUMBER} finished."
+            echo "Build URL: ${env.BUILD_URL}"
+            cleanWs()
         }
     }
 }
