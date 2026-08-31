@@ -8,6 +8,6 @@ class TaskManagerApplicationTests {
 
     @Test
     void applicationTest() {
-        assertTrue(true);
+        assertTrue(false);
     }
 }
