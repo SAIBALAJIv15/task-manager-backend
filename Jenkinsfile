@@ -1,3 +1,4 @@
+```groovy
 pipeline {
     agent any
 
@@ -30,15 +31,26 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                sh 'mvn test'
-            }
+        stage('Quality') {
+            parallel {
 
-            post {
-                always {
-                    junit allowEmptyResults: true,
-                          testResults: 'target/surefire-reports/*.xml'
+                stage('Unit Tests') {
+                    steps {
+                        sh 'mvn test'
+                    }
+                    post {
+                        always {
+                            junit allowEmptyResults: true,
+                                  testResults: 'target/surefire-reports/*.xml'
+                        }
+                    }
+                }
+
+                stage('Compile Check') {
+                    steps {
+                        sh 'mvn compile -DskipTests'
+                        echo 'Code compiles cleanly'
+                    }
                 }
             }
         }
@@ -72,3 +84,4 @@ pipeline {
         }
     }
 }
+
