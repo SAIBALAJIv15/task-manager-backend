@@ -6,27 +6,24 @@ pipeline {
     }
 
     environment {
-        APP = 'task-manager-backend'
+        DOCKER_IMAGE = 'saibalajiv/task-manager-backend'
+        DOCKER_TAG = "${BUILD_NUMBER}"
     }
 
     options {
         timeout(time: 15, unit: 'MINUTES')
-        buildDiscarder(logRotator(numToKeepStr: '5'))
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
-                echo "Building ${APP} — Branch: ${env.BRANCH_NAME ?: 'main'}"
             }
         }
 
         stage('Build') {
             steps {
-                sh 'mvn clean compile -DskipTests'
-                echo 'Compilation successful'
+                sh 'mvn clean package -DskipTests'
             }
         }
 
@@ -34,7 +31,6 @@ pipeline {
             steps {
                 sh 'mvn test'
             }
-
             post {
                 always {
                     junit allowEmptyResults: true,
@@ -43,31 +39,33 @@ pipeline {
             }
         }
 
-        stage('Package') {
+        stage('Docker Build') {
             steps {
-                sh 'mvn package -DskipTests'
-                echo 'JAR created in target/'
+                sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
+                sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
             }
         }
 
-        stage('Archive') {
+        stage('Docker Push') {
             steps {
-                archiveArtifacts artifacts: 'target/*.jar',
-                                 fingerprint: true
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    sh "docker push ${DOCKER_IMAGE}:latest"
+                }
             }
         }
     }
 
     post {
-        success {
-            echo 'Pipeline SUCCESS — artifact ready!'
-        }
-
-        failure {
-            echo 'Pipeline FAILED'
-        }
-
         always {
+            sh 'docker logout || true'
             cleanWs()
         }
     }
