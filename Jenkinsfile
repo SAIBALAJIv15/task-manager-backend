@@ -61,6 +61,16 @@ pipeline {
                 }
             }
         }
+         
+        stage('Deploy') {
+            steps {
+                sh """
+                    ansible-playbook deploy-app.yml \
+                    -i ansible/inventory.ini \
+                    -e 'docker_image=${DOCKER_IMAGE} docker_tag=${DOCKER_TAG}'
+                """
+            }
+        }
     }
 
     post {
