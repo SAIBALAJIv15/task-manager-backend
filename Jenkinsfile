@@ -121,10 +121,36 @@ pipeline {
     post {
         success {
             echo "\n Build #${BUILD_NUMBER} SUCCESS — deployed to ${params.DEPLOY_ENV}"
+
+            emailext(
+                subject: "Jenkins Build #${BUILD_NUMBER} SUCCESS",
+                body: """Build #${BUILD_NUMBER} completed successfully.
+
+    Job: ${JOB_NAME}
+    Build: ${BUILD_NUMBER}  
+    Environment: ${params.DEPLOY_ENV}
+    Build URL: ${BUILD_URL}
+    """,
+                to: "saibalajisai24@gmail.com"
+            )
         }
+
 
         failure {
             echo "\n Build FAILED — check console output for errors"
+
+            emailext(
+                subject: "Jenkins Build #${BUILD_NUMBER} FAILED",
+                body: """Build #${BUILD_NUMBER} failed.
+
+     Job: ${JOB_NAME}
+     Build: ${BUILD_NUMBER}    
+     Build URL: ${BUILD_URL}
+
+     Please check the Jenkins console output.
+     """,
+                to: "saibalajisai24@gmail.com"
+             )
         }
 
         unstable {
