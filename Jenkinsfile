@@ -120,15 +120,15 @@ pipeline {
 
     post {
         success {
-            echo "Build #${BUILD_NUMBER} SUCCESS — deployed to ${params.DEPLOY_ENV}"
+            echo "\n Build #${BUILD_NUMBER} SUCCESS — deployed to ${params.DEPLOY_ENV}"
         }
 
         failure {
-            echo "Build FAILED — check console output for errors"
+            echo "\n Build FAILED — check console output for errors"
         }
 
         unstable {
-            echo "Build UNSTABLE — tests have warnings"
+            echo "\n\n Build UNSTABLE — tests have warnings"
         }
 
         always {
@@ -137,3 +137,4 @@ pipeline {
         }
     }
 }
+
