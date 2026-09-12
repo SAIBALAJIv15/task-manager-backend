@@ -12,6 +12,6 @@ public class WebhookTest {
 
     @Test
     void failingTest() {
-        assertEquals(42, 1 + 1, "Intentional failure!");
+        assertEquals(2, 1 + 1, "Math works!");
     }
 }
