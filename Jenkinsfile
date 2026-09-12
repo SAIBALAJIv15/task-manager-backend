@@ -1,6 +1,25 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_IMAGE = 'saibalajiv/task-manager-backend'
+        DOCKER_TAG = "${BUILD_NUMBER}"
+    }
+
+    parameters {
+        choice(
+            name: 'DEPLOY_ENV',
+            choices: ['dev', 'staging', 'prod'],
+            description: 'Target deployment environment'
+        )
+
+        booleanParam(
+            name: 'SKIP_TESTS',
+            defaultValue: false,
+            description: 'Skip unit tests?'
+        )
+    }
+
     options {
         timeout(time: 20, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '10'))
@@ -8,16 +27,8 @@ pipeline {
         disableConcurrentBuilds()
     }
 
-    tools {
-        maven 'Maven'
-    }
-
-    environment {
-        DOCKER_IMAGE = 'saibalajiv/task-manager-backend'
-        DOCKER_TAG = "${BUILD_NUMBER}"
-    }
-
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -30,22 +41,41 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                sh 'mvn test'
+        stage('Quality') {
+            when {
+                expression { return !params.SKIP_TESTS }
             }
-            post {
-                always {
-                    junit allowEmptyResults: true,
-                          testResults: 'target/surefire-reports/*.xml'
+
+            parallel {
+
+                stage('Unit Tests') {
+                    steps {
+                        sh 'mvn test'
+                    }
+
+                    post {
+                        always {
+                            junit allowEmptyResults: true,
+                                  testResults: 'target/surefire-reports/*.xml'
+                        }
+                    }
+                }
+
+                stage('Compile Check') {
+                    steps {
+                        sh 'mvn compile -DskipTests'
+                    }
                 }
             }
         }
 
         stage('Docker Build') {
             steps {
-                sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
-                sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
+                sh '''
+                    docker build \
+                    -t ${DOCKER_IMAGE}:${DOCKER_TAG} \
+                    -t ${DOCKER_IMAGE}:latest .
+                '''
             }
         }
 
@@ -54,19 +84,31 @@ pipeline {
                 withCredentials([
                     usernamePassword(
                         credentialsId: 'dockerhub-credentials',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
                     )
                 ]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                    sh "docker push ${DOCKER_IMAGE}:latest"
+                    sh '''
+                        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                        docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+                        docker push ${DOCKER_IMAGE}:latest
+                        docker logout
+                    '''
                 }
             }
         }
-         
+
         stage('Deploy') {
+            when {
+                branch 'main'
+                expression {
+                    return params.DEPLOY_ENV != 'dev'
+                }
+            }
+
             steps {
+                echo "Deploying to ${params.DEPLOY_ENV}"
+
                 sh """
                     ansible-playbook deploy-app.yml \
                     -i ansible/inventory.ini \
@@ -77,8 +119,20 @@ pipeline {
     }
 
     post {
+        success {
+            echo "Build #${BUILD_NUMBER} SUCCESS — deployed to ${params.DEPLOY_ENV}"
+        }
+
+        failure {
+            echo "Build FAILED — check console output for errors"
+        }
+
+        unstable {
+            echo "Build UNSTABLE — tests have warnings"
+        }
+
         always {
-            sh 'docker logout || true'
+            echo "Build URL: ${BUILD_URL}"
             cleanWs()
         }
     }
