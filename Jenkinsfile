@@ -17,10 +17,6 @@ pipeline {
         DOCKER_TAG = "${BUILD_NUMBER}"
     }
 
-    options {
-        timeout(time: 15, unit: 'MINUTES')
-    }
-
     stages {
         stage('Checkout') {
             steps {
