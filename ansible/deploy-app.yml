@@ -23,11 +23,6 @@
         state: started
         enabled: yes
 
-    - name: Install Docker Compose plugin
-      dnf:
-        name: docker-compose-plugin
-        state: present
-
     - name: Create app directory
       file:
         path: "{{ app_dir }}"
