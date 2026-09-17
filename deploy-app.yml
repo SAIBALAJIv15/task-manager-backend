@@ -1,0 +1,49 @@
+---
+- name: Deploy Task Manager Backend
+  hosts: appservers
+  become: yes
+
+  vars:
+    container_name: task-manager
+    app_port: 8080
+
+  tasks:
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Pull Docker image
+      community.docker.docker_image:
+        name: '{{ docker_image }}'
+        tag: '{{ docker_tag }}'
+        source: pull
+
+    - name: Stop old container
+      community.docker.docker_container:
+        name: '{{ container_name }}'
+        state: absent
+      ignore_errors: yes
+
+    - name: Start new container
+      community.docker.docker_container:
+        name: '{{ container_name }}'
+        image: '{{ docker_image }}:{{ docker_tag }}'
+        state: started
+        restart_policy: always
+        ports:
+          - '{{ app_port }}:8080'
+        env:
+          SPRING_DATASOURCE_URL: 'jdbc:mysql://10.0.1.253:3306/taskdb?useSSL=false&allowPublicKeyRetrieval=true'
+          SPRING_DATASOURCE_USERNAME: 'taskapp'
+          SPRING_DATASOURCE_PASSWORD: 'TaskApp2026'
+
+    - name: Verify health check
+      uri:
+        url: 'http://localhost:{{ app_port }}/api/tasks/health'
+        status_code: 200
+      register: health
+      until: health.status == 200
+      retries: 12
+      delay: 5
