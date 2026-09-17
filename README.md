@@ -69,3 +69,4 @@ Edit `src/main/resources/application.properties` to change:
 - Server port
 - JPA settings
 
+// Frontend updated - Thu Sep 17 22:54:30 IST 2026
