@@ -73,28 +73,6 @@ pipeline {
 
                 dir('frontend-repo') {
 
-                    writeFile file: 'Dockerfile', text: '''
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-
-COPY package*.json ./
-
-RUN npm install
-
-COPY . .
-
-RUN npm run build
-
-FROM nginx:alpine
-
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
-'''
-
                     sh "docker build -t ${DOCKER_IMAGE_FE}:${DOCKER_TAG} ."
 
                     sh "docker tag ${DOCKER_IMAGE_FE}:${DOCKER_TAG} ${DOCKER_IMAGE_FE}:latest"
