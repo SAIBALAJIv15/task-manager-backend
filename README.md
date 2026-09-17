@@ -68,3 +68,4 @@ Edit `src/main/resources/application.properties` to change:
 - Database URL (for AWS RDS: replace localhost with RDS endpoint)
 - Server port
 - JPA settings
+
