@@ -11,6 +11,7 @@ pipeline {
         DOCKER_IMAGE_FE = 'saibalajiv/task-manager-frontend'
         DOCKER_TAG = "${BUILD_NUMBER}"
         FE_REPO = 'https://github.com/SAIBALAJIv15/task-manager-frontend.git'
+        ANSIBLE_INVENTORY = '/var/lib/jenkins/generated-inventory.ini'
     }
 
     options {
@@ -117,7 +118,7 @@ pipeline {
 
                 sh """
                     ansible-playbook \
-                        -i ansible/inventory.ini \
+                        -i ${ANSIBLE_INVENTORY} \
                         ansible/deploy-app.yml \
                         -e "docker_image_be=${DOCKER_IMAGE_BE}" \
                         -e "docker_image_fe=${DOCKER_IMAGE_FE}" \
@@ -136,7 +137,7 @@ pipeline {
 
                 sh """
                     ansible appservers \
-                        -i ansible/inventory.ini \
+                        -i ${ANSIBLE_INVENTORY} \
                         -m uri \
                         -a 'url=http://localhost:8080/api/tasks/health status_code=200' \
                         --become

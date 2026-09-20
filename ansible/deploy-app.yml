@@ -4,8 +4,8 @@
   become: yes
 
   vars:
-    docker_image_be: "taskmanager/backend"
-    docker_image_fe: "taskmanager/frontend"
+    docker_image_be: "saibalajiv/task-manager-backend"
+    docker_image_fe: "saibalajiv/task-manager-frontend"
     docker_tag: "latest"
     app_dir: /opt/task-manager
     app_port: 80
